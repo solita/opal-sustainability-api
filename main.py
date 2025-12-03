@@ -6,7 +6,7 @@ import hashlib
 
 app = FastAPI(
     title="Compass Sustainability & Waste API",
-    description="Mock sustainability KPI API for Opal demo",
+    description="Mock sustainability KPI API for Opal demo by Víctor Manuel Ontiveros",
     version="1.0.0",
 )
 
