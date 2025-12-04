@@ -75,6 +75,45 @@ class DeltaKpis(BaseModel):
     co2_trend: Literal["up", "down", "flat"]
     vegetarian_trend: Literal["up", "down", "flat"]
 
+# ----- opal tool registry ----- #
+@app.get("/opal-tool-registry")
+def opal_tool_registry():
+    return {
+        "tools": [
+            {
+                "name": "ListSites",
+                "description": "Returns all available Compass sites.",
+                "type": "http",
+                "method": "GET",
+                "url": "https://opal-sustainability-api.onrender.com/sites",
+                "input_schema": None
+            },
+            {
+                "name": "GetSiteKpis",
+                "description": "Returns KPIs for a specified site and time period.",
+                "type": "http",
+                "method": "POST",
+                "url": "https://opal-sustainability-api.onrender.com/get-kpis",
+                "input_schema": {
+                    "site_id": "string",
+                    "period": "string"
+                }
+            },
+            {
+                "name": "CompareSiteKpis",
+                "description": "Compares KPIs between two periods.",
+                "type": "http",
+                "method": "POST",
+                "url": "https://opal-sustainability-api.onrender.com/compare-kpis",
+                "input_schema": {
+                    "site_id": "string",
+                    "current_period": "string",
+                    "previous_period": "string"
+                }
+            }
+        ]
+    }
+
 
 # ----- utility: deterministic mock generator ----- #
 
