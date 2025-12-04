@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Body
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, List
+from typing import Literal, List, Dict, Any
 import math
 import hashlib
 
@@ -30,6 +30,15 @@ MOCK_SITES: List[SiteInfo] = [
     SiteInfo(site_id="turku-hospital", name="Turku Hospital Cafeteria", region="Varsinais-Suomi", segment="healthcare"),
 ]
 
+def _extract_parameters(body: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    enables support for both:
+      - direct payload: {"site_id": "...", "period": "..."}
+      - opal payload: {"parameters": {"site_id": "...", "period": "..."}}
+    """
+    if isinstance(body, dict) and "parameters" in body and isinstance(body["parameters"], dict):
+        return body["parameters"]
+    return body
 
 class GetKpisRequest(BaseModel):
     site_id: str = Field(..., description="Identifier for the site/location")
@@ -77,75 +86,87 @@ class DeltaKpis(BaseModel):
 
 # ----- opal tool registry ----- #
 @app.get("/opal-tool-registry")
-def opal_tool_registry():
+async def opal_tool_registry() -> Dict[str, Any]:
+    """
+    discovery endpoint for Optimizely opal
+    returns tool manifest in opal's expected format
+    don't worry about this for now
+    """
     return {
-        "version": "1.0",
         "functions": [
             {
-                "name": "ListSites",
-                "description": "Return all available Compass sites.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {},
-                    "required": []
-                },
-                # Opal-specific HTTP wiring
-                "x-opal-http": {
-                    "method": "GET",
-                    "url": "https://opal-sustainability-api.onrender.com/sites"
-                }
+                "name": "list_sites",
+                "description": (
+                    "List all available Compass food service sites that can be used "
+                    "in sustainability KPI analysis. Use this when the user wants "
+                    "to browse or select a site."
+                ),
+                "parameters": [],  # no input parameters
+                "endpoint": "/sites",          # relative path
+                "http_method": "GET",
+                "auth_requirements": []        # no auth for the demo
             },
             {
-                "name": "GetSiteKpis",
-                "description": "Return sustainability KPIs for the given site and period.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "site_id": {
-                            "type": "string",
-                            "description": "ID of the site (e.g. helsinki-hq)."
-                        },
-                        "period": {
-                            "type": "string",
-                            "description": "Time period (current, previous, last_month, last_quarter)."
-                        }
+                "name": "get_site_kpis",
+                "description": (
+                    "Fetch sustainability KPIs (meals served, food waste, CO₂, "
+                    "vegetarian share) for a given site and period. "
+                    "Use this when the user wants the KPI numbers themselves."
+                ),
+                "parameters": [
+                    {
+                        "name": "site_id",
+                        "type": "string",
+                        "description": "ID of the site (e.g. 'helsinki-hq').",
+                        "required": True
                     },
-                    "required": ["site_id", "period"]
-                },
-                "x-opal-http": {
-                    "method": "POST",
-                    "url": "https://opal-sustainability-api.onrender.com/get-kpis"
-                }
+                    {
+                        "name": "period",
+                        "type": "string",
+                        "description": (
+                            "Time period to analyze: 'current', 'previous', "
+                            "'last_month', or 'last_quarter'."
+                        ),
+                        "required": True
+                    }
+                ],
+                "endpoint": "/get-kpis",       # relative path
+                "http_method": "POST",
+                "auth_requirements": []
             },
             {
-                "name": "CompareSiteKpis",
-                "description": "Compare sustainability KPIs between two periods for a site.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "site_id": {
-                            "type": "string",
-                            "description": "ID of the site (e.g. helsinki-hq)."
-                        },
-                        "current_period": {
-                            "type": "string",
-                            "description": "Current period (e.g. current)."
-                        },
-                        "previous_period": {
-                            "type": "string",
-                            "description": "Previous period (e.g. previous)."
-                        }
+                "name": "compare_site_kpis",
+                "description": (
+                    "Compare sustainability KPIs between two periods for a single site "
+                    "and return deltas and trends. Use this when the user asks if "
+                    "waste/CO₂/vegetarian share is getting better or worse."
+                ),
+                "parameters": [
+                    {
+                        "name": "site_id",
+                        "type": "string",
+                        "description": "ID of the site (e.g. 'helsinki-hq').",
+                        "required": True
                     },
-                    "required": ["site_id", "current_period", "previous_period"]
-                },
-                "x-opal-http": {
-                    "method": "POST",
-                    "url": "https://opal-sustainability-api.onrender.com/compare-kpis"
-                }
+                    {
+                        "name": "current_period",
+                        "type": "string",
+                        "description": "Current period (e.g. 'current').",
+                        "required": True
+                    },
+                    {
+                        "name": "previous_period",
+                        "type": "string",
+                        "description": "Previous period (e.g. 'previous').",
+                        "required": True
+                    }
+                ],
+                "endpoint": "/compare-kpis",
+                "http_method": "POST",
+                "auth_requirements": []
             }
         ]
     }
-
 
 
 # ----- utility: deterministic mock generator ----- #
@@ -207,20 +228,18 @@ def list_sites():
 
 
 @app.post("/get-kpis", response_model=SiteKpis)
-def get_kpis(payload: GetKpisRequest):
-    """
-    returns mocked sustainability KPIs for a given site and period,
-    opal's GetSiteKpis tool will call this
-    """
+def get_kpis(body: Dict[str, Any] = Body(...)):
+    params = _extract_parameters(body)
+    payload = GetKpisRequest(**params)  # validate
+
     return generate_mock_kpis(payload.site_id, payload.period)
 
 
 @app.post("/compare-kpis", response_model=DeltaKpis)
-def compare_kpis(payload: CompareKpisRequest):
-    """
-    compares KPIs between two periods for a given site,
-    opal's CompareSiteKpis tool will call this endpoint
-    """
+def compare_kpis(body: Dict[str, Any] = Body(...)):
+    params = _extract_parameters(body)
+    payload = CompareKpisRequest(**params)  # Pydantic validation
+
     current = generate_mock_kpis(payload.site_id, payload.current_period)
     previous = generate_mock_kpis(payload.site_id, payload.previous_period)
 
