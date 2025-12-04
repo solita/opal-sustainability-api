@@ -79,40 +79,73 @@ class DeltaKpis(BaseModel):
 @app.get("/opal-tool-registry")
 def opal_tool_registry():
     return {
-        "tools": [
+        "version": "1.0",
+        "functions": [
             {
                 "name": "ListSites",
-                "description": "Returns all available Compass sites.",
-                "type": "http",
-                "method": "GET",
-                "url": "https://opal-sustainability-api.onrender.com/sites",
-                "input_schema": None
+                "description": "Return all available Compass sites.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                },
+                # Opal-specific HTTP wiring
+                "x-opal-http": {
+                    "method": "GET",
+                    "url": "https://opal-sustainability-api.onrender.com/sites"
+                }
             },
             {
                 "name": "GetSiteKpis",
-                "description": "Returns KPIs for a specified site and time period.",
-                "type": "http",
-                "method": "POST",
-                "url": "https://opal-sustainability-api.onrender.com/get-kpis",
-                "input_schema": {
-                    "site_id": "string",
-                    "period": "string"
+                "description": "Return sustainability KPIs for the given site and period.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "site_id": {
+                            "type": "string",
+                            "description": "ID of the site (e.g. helsinki-hq)."
+                        },
+                        "period": {
+                            "type": "string",
+                            "description": "Time period (current, previous, last_month, last_quarter)."
+                        }
+                    },
+                    "required": ["site_id", "period"]
+                },
+                "x-opal-http": {
+                    "method": "POST",
+                    "url": "https://opal-sustainability-api.onrender.com/get-kpis"
                 }
             },
             {
                 "name": "CompareSiteKpis",
-                "description": "Compares KPIs between two periods.",
-                "type": "http",
-                "method": "POST",
-                "url": "https://opal-sustainability-api.onrender.com/compare-kpis",
-                "input_schema": {
-                    "site_id": "string",
-                    "current_period": "string",
-                    "previous_period": "string"
+                "description": "Compare sustainability KPIs between two periods for a site.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "site_id": {
+                            "type": "string",
+                            "description": "ID of the site (e.g. helsinki-hq)."
+                        },
+                        "current_period": {
+                            "type": "string",
+                            "description": "Current period (e.g. current)."
+                        },
+                        "previous_period": {
+                            "type": "string",
+                            "description": "Previous period (e.g. previous)."
+                        }
+                    },
+                    "required": ["site_id", "current_period", "previous_period"]
+                },
+                "x-opal-http": {
+                    "method": "POST",
+                    "url": "https://opal-sustainability-api.onrender.com/compare-kpis"
                 }
             }
         ]
     }
+
 
 
 # ----- utility: deterministic mock generator ----- #

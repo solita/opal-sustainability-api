@@ -122,6 +122,32 @@ Compares KPIs between two periods and returns deltas and trend flags.
 
 Used by Opal’s **CompareSiteKpis** tool.
 
+### 📘 Opal Tools Registry (`/opal-tools-registry`)
+
+This API includes a special endpoint that allows **Opal** to automatically discover and register tools for use in AI workflows.  
+Because the current Opal interface does not support adding individual tools manually, this endpoint provides a **tool registry manifest** that Opal can read and import.
+
+The registry is exposed at: `GET /opal-tools-registry`
+
+This endpoint returns a JSON document containing a `functions` array. Each entry describes a tool’s:
+
+- **name**  
+- **description**  
+- **input parameters** (JSON Schema format)  
+- **HTTP method and URL** (via the `x-opal-http` field)
+
+Opal uses this information to automatically create tools such as:
+
+- `ListSites` – fetch available Compass locations  
+- `GetSiteKpis` – retrieve sustainability KPIs  
+- `CompareSiteKpis` – compare KPIs across time periods  
+
+These tools become available to Opal **agents** inside workflows, enabling them to call this API as part of their reasoning and execution steps.
+
+This endpoint is specifically intended for Opal integration and is not required for general API use.
+
+//TODO: document Opal Tool Registry further
+
 ---
 
 ## 📐 Architecture Diagram
