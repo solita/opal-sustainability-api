@@ -103,7 +103,7 @@ async def opal_tool_registry() -> Dict[str, Any]:
                 ),
                 "parameters": [],  # no input parameters
                 "endpoint": "/sites",          # relative path
-                "http_method": "GET",
+                "http_method": "POST",
                 "auth_requirements": []        # no auth for the demo
             },
             {
@@ -218,7 +218,8 @@ def health():
 
 
 @app.get("/sites", response_model=List[SiteInfo])
-def list_sites():
+@app.post("/sites", response_model=List[SiteInfo])
+def list_sites(body: Dict[str, Any] | None = Body(None)):
     """
     returns sone mocked compass site locations
     for expanding the demo to multi-site workflows
