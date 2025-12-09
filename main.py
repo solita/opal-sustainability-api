@@ -220,6 +220,7 @@ def health():
 @app.get("/sites", response_model=List[SiteInfo])
 @app.post("/sites", response_model=List[SiteInfo])
 def list_sites(body: Dict[str, Any] | None = Body(None)):
+    print("/sites called ✅")
     """
     returns sone mocked compass site locations
     for expanding the demo to multi-site workflows
@@ -230,6 +231,7 @@ def list_sites(body: Dict[str, Any] | None = Body(None)):
 
 @app.post("/get-kpis", response_model=SiteKpis)
 def get_kpis(body: Dict[str, Any] = Body(...)):
+    print("/get-kpis called ✅")
     params = _extract_parameters(body)
     payload = GetKpisRequest(**params)  # validate
 
@@ -238,6 +240,7 @@ def get_kpis(body: Dict[str, Any] = Body(...)):
 
 @app.post("/compare-kpis", response_model=DeltaKpis)
 def compare_kpis(body: Dict[str, Any] = Body(...)):
+    print("/compare-kpis called ✅")
     params = _extract_parameters(body)
     payload = CompareKpisRequest(**params)  # Pydantic validation
 
